@@ -1,6 +1,7 @@
 # What is this?
 ## Common checks for /v1/models and `/model/info`
 from typing import Dict, List, Optional, Set
+import requests
 
 import litellm
 from litellm._logging import verbose_proxy_logger
@@ -176,6 +177,15 @@ def get_complete_model_list(
 def get_known_models_from_wildcard(
     wildcard_model: str, litellm_params: Optional[LiteLLM_Params] = None
 ) -> List[str]:
+    if wildcard_model == "*":
+        try:
+            # pass through {api_base}/models if exists
+            assert litellm_params is not None
+            assert litellm_params.api_base is not None
+            response = requests.get(litellm_params.api_base + "/models")
+            return [model["id"] for model in response.json()["data"]]
+        except Exception as e:
+            return []
     try:
         provider, model = wildcard_model.split("/", 1)
     except ValueError:  # safely fail
